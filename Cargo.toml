@@ -1,0 +1,11 @@
+[package]
+name = "packing_nannou"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#nannou = "0.18.1"
+nannou = {path = "../nannou/nannou"}
+packing_lib = { path = "../packing_lib"}
