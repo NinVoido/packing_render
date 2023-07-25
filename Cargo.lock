@@ -1485,7 +1485,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "packing_nannou"
+name = "packing_render"
 version = "0.1.0"
 dependencies = [
  "nannou",
