@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 #nannou = "0.18.1"
-nannou = {path = "../nannou/nannou"}
+kiss3d = "0.35.0"
 packing_lib = { path = "../packing_lib"}

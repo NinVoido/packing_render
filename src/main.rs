@@ -1,73 +1,78 @@
-use nannou::event::WindowEvent;
-use nannou::prelude::*;
-use nannou::rand;
-use nannou::rand::seq::SliceRandom;
-
 use packing_lib::annealing::annealing::Anneal;
 use packing_lib::math_utils::Point;
 
-struct Model {
-    state: Anneal,
-    cur_n: usize,
-}
+use std::iter::zip;
+use kiss3d::event::{Action, Key, WindowEvent};
+
+use kiss3d::nalgebra::{Vector3};
+use kiss3d::window::Window;
+use kiss3d::light::Light;
 
 fn main() {
-    nannou::app(model)
-        .event(event)
-        .update(update)
-        .simple_window(view)
-        .run();
-}
-
-fn model(_app: &App) -> Model {
     let cords = packing_lib::load_utils::load_file("cords".to_string()).unwrap();
-    Model {
-        state: Anneal::new(cords),
-        cur_n: 1,
-    }
-}
+    let mut state = Anneal::new(cords);
 
-fn event(app: &App, model: &mut Model, event: Event) {
-    match event {
-        Event::WindowEvent { id, simple } => {
-            if let Some(simple) = simple {
-                match simple {
-                    WindowEvent::MousePressed(_) => {
-                        model.state.cords.push(Point::new(vec![
-                            (app.mouse.x / 10.0) as f64,
-                            (app.mouse.y / 10.0) as f64,
-                        ]));
-                    }
-                    _ => (),
+    let mut window = Window::new("packing");
+
+    window.set_background_color(0.2, 0.1803921568627451, 0.2549019607843137);
+    window.set_light(Light::StickToCamera);
+
+    let mut spheres = Vec::new();
+    let mut add_pnt = window.add_sphere(0.2);
+    add_pnt.set_color(1.0, 0.0, 0.0);
+
+    for _ in &state.cords {
+        spheres.push(window.add_sphere(0.1));
+        spheres.last_mut().unwrap().set_color(0.6941176470588235, 0.8901960784313725, 0.6784313725490196);
+    }
+
+    while window.render() {
+
+        for i in window.events().iter() {
+            match i.value {
+                WindowEvent::Key(Key::Left, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(0.1, 0.0, 0.0).into());
+                },
+                WindowEvent::Key(Key::Right, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(-0.1, 0.0, 0.0).into());
+                },
+                WindowEvent::Key(Key::Up, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(0.0, 0.1, 0.0).into());
+                },
+                WindowEvent::Key(Key::Down, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(0.0, -0.1, 0.0).into());
+                },
+                WindowEvent::Key(Key::PageUp, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(0.0, 0.0, 0.1).into());
+                },
+                WindowEvent::Key(Key::PageDown, Action::Press, _) => {
+                    add_pnt.prepend_to_local_translation(&Vector3::new(0.0, 0.0, -0.1).into());
                 }
+                WindowEvent::Key(Key::Space, Action::Press, _) => {
+                    spheres.push(window.add_sphere(0.1));
+                    spheres.last_mut().unwrap().set_color(0.6941176470588235, 0.8901960784313725, 0.6784313725490196);
+
+                    let mut cords_n = vec![0.0, 0.0, 0.0];
+                    let mut trans = add_pnt.data().local_translation();
+
+                    cords_n[0] = trans.x as f64;
+                    cords_n[1] = trans.y as f64;
+                    cords_n[2] = trans.z as f64;
+
+                    state.cords.push(Point::new(cords_n));
+                }
+                _ => (),
+
             }
         }
-        _ => (),
+
+        window.scene();
+
+        state.step_n(1, 100);
+
+        for (p, sphere) in zip(&state.cords, &mut spheres) {
+            sphere.set_local_translation(Vector3::new(p.0[0] as f32, p.0[1] as f32, p.0[2] as f32).into());
+        }
+
     }
-}
-
-fn update(_app: &App, model: &mut Model, _update: Update) {
-    if model.state.should_inc() {
-        model.cur_n += 1;
-    }
-
-    //model.state.step_n(model.cur_n, 100);
-    model.state.step_n(1, 100);
-}
-
-fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
-
-    draw.background().color(WHITE);
-
-    for p in &model.state.cords {
-        debug_assert_eq!(p.0.len(), 2);
-        draw.ellipse()
-            .x(p.0[0] as f32 * 10.0)
-            .y(p.0[1] as f32 * 10.0)
-            .radius(3.0)
-            .color(BLACK)
-            .finish();
-    }
-    draw.to_frame(app, &frame).unwrap();
 }
